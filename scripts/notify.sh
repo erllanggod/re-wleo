@@ -2,7 +2,7 @@
 set -e
 
 if [ -z "${TELEGRAM_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-  echo "[!] TELEGRAM_TOKEN/TELEGRAM_CHAT_ID kosong, skip notifikasi."
+  echo "[!] TELEGRAM_TOKEN/TELEGRAM_CHAT_ID is empty, skipping notification."
   exit 0
 fi
 
@@ -21,4 +21,4 @@ curl -sS --max-time 300 \
   -F document=@"${GITHUB_WORKSPACE}/${ZIP_NAME}" \
   -F caption="$CAPTION" \
   "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument" > /tmp/tg.json
-grep -q '"ok":true' /tmp/tg.json && echo "[+] Telegram notification sent." || { echo "[!] Telegram gagal:"; cat /tmp/tg.json; exit 1; }
+grep -q '"ok":true' /tmp/tg.json && echo "[+] Telegram notification sent." || { echo "[!] Telegram failed:"; cat /tmp/tg.json; exit 1; }

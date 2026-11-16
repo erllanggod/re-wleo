@@ -19,7 +19,7 @@ export ARCH=arm64 SUBARCH=arm64
 export KBUILD_BUILD_USER="erllanggod"
 export KBUILD_BUILD_HOST="$BRAND"
 
-[ -n "${KBUILD_COMPILER_STRING:-}" ] || { echo "[!] KBUILD_COMPILER_STRING kosong, setup clang gagal?" >&2; exit 1; }
+[ -n "${KBUILD_COMPILER_STRING:-}" ] || { echo "[!] KBUILD_COMPILER_STRING is empty, did the clang setup fail?" >&2; exit 1; }
 export KBUILD_COMPILER_STRING
 export PATH="${CLANG_PATH}:$PATH"
 
@@ -43,7 +43,7 @@ if [ -n "$KERNEL_NAME" ]; then
   esc=$(printf '%s' "$KERNEL_NAME" | sed -e 's/[\/&]/\\&/g')
   sed -i "s/^CONFIG_LOCALVERSION=\".*\"/CONFIG_LOCALVERSION=\"$esc\"/" "arch/arm64/configs/$DEFCONFIG"
   grep -qF "CONFIG_LOCALVERSION=\"$KERNEL_NAME\"" "arch/arm64/configs/$DEFCONFIG" \
-    || { echo "[!] gagal set CONFIG_LOCALVERSION di $DEFCONFIG" >&2; exit 1; }
+    || { echo "[!] failed to set CONFIG_LOCALVERSION in $DEFCONFIG" >&2; exit 1; }
 fi
 
 MAKE_ARGS=(O="$OUT_DIR" CC="ccache clang" LD=ld.lld AR=llvm-ar NM=llvm-nm
@@ -85,7 +85,7 @@ IMG=""
 for img in Image.gz-dtb Image.gz Image; do
   [ -f "$ZIMAGE_DIR/$img" ] && { IMG="$img"; break; }
 done
-[ -n "$IMG" ] || { echo "[!] kernel image nggak ketemu" >&2; exit 1; }
+[ -n "$IMG" ] || { echo "[!] kernel image not found" >&2; exit 1; }
 
 cd "$GITHUB_WORKSPACE"
 rm -rf anykernel_temp
