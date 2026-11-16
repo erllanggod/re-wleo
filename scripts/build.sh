@@ -13,7 +13,7 @@ KERNEL_NAME="${INPUT_KERNEL_NAME:-}"
 DEBUG_MODE="${INPUT_DEBUG:-off}"
 
 BRAND="$(printf '%s' "${KERNEL_NAME#-}" | tr -c 'A-Za-z0-9._-' '-')"
-BRAND="${BRAND:-Raccoon}"
+BRAND="${BRAND:-DumpC2J}"
 
 export ARCH=arm64 SUBARCH=arm64
 export KBUILD_BUILD_USER="erllanggod"

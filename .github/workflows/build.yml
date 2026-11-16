@@ -7,7 +7,7 @@ on:
         description: "Custom LOCALVERSION"
         required: false
         type: string
-        default: ""
+        default: "-DumpC2J"
       clang_variant:
         description: "Clang Toolchain"
         required: true
@@ -53,7 +53,7 @@ env:
 
 jobs:
   build:
-    name: "Raccoon Build"
+    name: "DumpC2J Build"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
