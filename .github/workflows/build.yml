@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       kernel_name:
-        description: "Custom LOCALVERSION
+        description: "Custom LOCALVERSION"
         required: false
         type: string
         default: ""
