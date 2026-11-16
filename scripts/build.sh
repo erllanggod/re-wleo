@@ -94,7 +94,7 @@ cp -v "$ZIMAGE_DIR/$IMG" anykernel_temp/
 
 KVER=$(awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3} END{print v"."p"."s}' "$KERNEL_DIR/Makefile")
 TIME=$(date "+%Y%m%d-%H%M")
-ZIP_NAME="${BRAND}-${KVER}-${TIME}.zip"
+ZIP_NAME="${BRAND}-Vanilla-${TIME}.zip"
 (cd anykernel_temp && zip -r9 "${GITHUB_WORKSPACE}/${ZIP_NAME}" . -x '.git*' -x 'README.md' -x '*placeholder' >/dev/null)
 rm -rf anykernel_temp
 
@@ -108,4 +108,4 @@ DIFF=$(( $(date +%s) - BUILD_START ))
   echo "BUILD_IMAGE=$IMG"
 } >> "$GITHUB_ENV"
 
-echo "[+] Build selesai dalam $((DIFF / 60))m $((DIFF % 60))s: $ZIP_NAME"
+echo "[+] Build done in $((DIFF / 60))m $((DIFF % 60))s: $ZIP_NAME"
