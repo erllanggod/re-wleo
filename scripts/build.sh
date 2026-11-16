@@ -16,7 +16,7 @@ BRAND="$(printf '%s' "${KERNEL_NAME#-}" | tr -c 'A-Za-z0-9._-' '-')"
 BRAND="${BRAND:-DumpC2J}"
 
 export ARCH=arm64 SUBARCH=arm64
-export KBUILD_BUILD_USER="erllanggod"
+export KBUILD_BUILD_USER="adennnqt"
 export KBUILD_BUILD_HOST="$BRAND"
 
 [ -n "${KBUILD_COMPILER_STRING:-}" ] || { echo "[!] KBUILD_COMPILER_STRING is empty, did the clang setup fail?" >&2; exit 1; }
