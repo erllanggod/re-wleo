@@ -1,10 +1,10 @@
-name: raccoon
+name: re-wleo
 
 on:
   workflow_dispatch:
     inputs:
       kernel_name:
-        description: "Custom LOCALVERSION (empty = keep defconfig value)"
+        description: "Custom LOCALVERSION
         required: false
         type: string
         default: ""
