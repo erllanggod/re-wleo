@@ -10,7 +10,6 @@ BUILD_START=$(date +%s)
 LTO="${INPUT_LTO:-default}"
 HZ="${INPUT_HZ:-default}"
 KERNEL_NAME="${INPUT_KERNEL_NAME:-}"
-OPTIMIZE="${INPUT_OPTIMIZE:-off}"
 DEBUG_MODE="${INPUT_DEBUG:-off}"
 
 BRAND="$(printf '%s' "${KERNEL_NAME#-}" | tr -c 'A-Za-z0-9._-' '-')"
@@ -32,11 +31,7 @@ export CCACHE_COMPILERCHECK=content
 mkdir -p "$CCACHE_DIR"
 ccache -z >/dev/null
 
-KCFLAGS=""
 KLDFLAGS=""
-if [ "$OPTIMIZE" == "on" ]; then
-  KCFLAGS="-w -O2 -fomit-frame-pointer -fno-semantic-interposition -fno-stack-protector"
-fi
 if [ "$LTO" == "thin" ]; then
   mkdir -p /dev/shm/ldcache
   KLDFLAGS="--thinlto-cache-dir=/dev/shm/ldcache"
@@ -53,7 +48,6 @@ fi
 
 MAKE_ARGS=(O="$OUT_DIR" CC="ccache clang" LD=ld.lld AR=llvm-ar NM=llvm-nm
   OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip LLVM=1 LLVM_IAS=1)
-[ -n "$KCFLAGS" ] && MAKE_ARGS+=(KCFLAGS="$KCFLAGS")
 [ -n "$KLDFLAGS" ] && MAKE_ARGS+=(LDFLAGS="$KLDFLAGS")
 
 mkdir -p "$OUT_DIR"

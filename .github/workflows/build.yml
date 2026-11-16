@@ -3,11 +3,6 @@ name: raccoon
 on:
   workflow_dispatch:
     inputs:
-      kernel_branch:
-        description: "Kernel Source Branch (empty = repo default branch)"
-        required: false
-        type: string
-        default: ""
       kernel_name:
         description: "Custom LOCALVERSION (empty = keep defconfig value)"
         required: false
@@ -47,11 +42,6 @@ on:
           - 500
           - 1000
         default: default
-      optimize_flags:
-        description: "Extra optimization KCFLAGS (off = plain defconfig flags)"
-        required: true
-        type: boolean
-        default: false
       debug:
         description: "Debug Mode (nokaslr)"
         required: true
@@ -84,9 +74,7 @@ jobs:
 
       - name: Clone Kernel Source
         run: |
-          BRANCH_ARGS=()
-          [ -n "${{ inputs.kernel_branch }}" ] && BRANCH_ARGS=(--branch "${{ inputs.kernel_branch }}")
-          git clone --depth=1 "${BRANCH_ARGS[@]}" \
+          git clone --depth=1 \
             https://${{ secrets.GH_TOKEN }}@github.com/erllanggod/rr66.git \
             kernel-source
 
@@ -140,7 +128,6 @@ jobs:
           INPUT_LTO: ${{ inputs.lto }}
           INPUT_HZ: ${{ inputs.hz }}
           INPUT_KERNEL_NAME: ${{ inputs.kernel_name }}
-          INPUT_OPTIMIZE: ${{ inputs.optimize_flags && 'on' || 'off' }}
           INPUT_DEBUG: ${{ inputs.debug && 'on' || 'off' }}
         run: bash builder/scripts/build.sh
 
