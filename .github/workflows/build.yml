@@ -1,0 +1,159 @@
+name: raccoon
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_branch:
+        description: "Kernel Source Branch (empty = repo default branch)"
+        required: false
+        type: string
+        default: ""
+      kernel_name:
+        description: "Custom LOCALVERSION (empty = keep defconfig value)"
+        required: false
+        type: string
+        default: ""
+      clang_variant:
+        description: "Clang Toolchain"
+        required: true
+        type: choice
+        options:
+          - neutron
+          - cirrus
+          - weebx
+          - zyc
+          - cbl
+          - aosp
+        default: aosp
+      lto:
+        description: "LTO Mode"
+        required: true
+        type: choice
+        options:
+          - default
+          - full
+          - thin
+          - none
+        default: default
+      hz:
+        description: "Tick rate (HZ)"
+        required: true
+        type: choice
+        options:
+          - default
+          - 100
+          - 250
+          - 300
+          - 500
+          - 1000
+        default: default
+      optimize_flags:
+        description: "Extra optimization KCFLAGS (off = plain defconfig flags)"
+        required: true
+        type: boolean
+        default: false
+      debug:
+        description: "Debug Mode (nokaslr)"
+        required: true
+        type: boolean
+        default: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: "Raccoon Build"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Builder
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/.ghcup \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune --all --force || true
+          df -h /
+
+      - name: Clone Kernel Source
+        run: |
+          BRANCH_ARGS=()
+          [ -n "${{ inputs.kernel_branch }}" ] && BRANCH_ARGS=(--branch "${{ inputs.kernel_branch }}")
+          git clone --depth=1 "${BRANCH_ARGS[@]}" \
+            https://${{ secrets.GH_TOKEN }}@github.com/erllanggod/rr66.git \
+            kernel-source
+
+      - name: Create Swap
+        run: |
+          SWAPFILE="/mnt/build_swapfile"
+          sudo fallocate -l 10G $SWAPFILE
+          sudo chmod 600 $SWAPFILE && sudo mkswap $SWAPFILE && sudo swapon $SWAPFILE
+
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential ccache curl flex git gnupg gperf \
+            libssl-dev libxml2 lzop squashfs-tools rsync zip zlib1g-dev \
+            python3 clang lld llvm jq dwarves libelf-dev cpio xz-utils
+
+      - name: Get Cache Week
+        id: cacheweek
+        if: inputs.clang_variant != 'neutron'
+        run: |
+          if [ "${{ inputs.clang_variant }}" = "aosp" ]; then
+            OUT=$(bash builder/scripts/resolve_aosp_clang.sh)
+            echo "$OUT" >> "$GITHUB_ENV"
+            V=$(echo "$OUT" | sed -n 's/^AOSP_CLANG_VER=//p')
+            echo "week=${V:-$(date -u +%G-W%V)}" >> "$GITHUB_OUTPUT"
+          else
+            echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache Clang Toolchain
+        if: inputs.clang_variant != 'neutron'
+        uses: actions/cache@v4
+        with:
+          path: ~/toolchains/${{ inputs.clang_variant }}-clang
+          key: clang-${{ inputs.clang_variant }}-${{ steps.cacheweek.outputs.week }}
+
+      - name: Setup Clang
+        run: bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }}
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ inputs.clang_variant }}-${{ inputs.lto }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ inputs.clang_variant }}-${{ inputs.lto }}-
+
+      - name: Build Kernel
+        env:
+          INPUT_LTO: ${{ inputs.lto }}
+          INPUT_HZ: ${{ inputs.hz }}
+          INPUT_KERNEL_NAME: ${{ inputs.kernel_name }}
+          INPUT_OPTIMIZE: ${{ inputs.optimize_flags && 'on' || 'off' }}
+          INPUT_DEBUG: ${{ inputs.debug && 'on' || 'off' }}
+        run: bash builder/scripts/build.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ZIP_NAME }}
+          if-no-files-found: error
+
+      - name: Notify Telegram
+        if: success()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.GRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: bash builder/scripts/notify.sh
