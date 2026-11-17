@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: "-DumpC2J"
+      kernel_ref:
+        description: "Kernel source branch to build"
+        required: false
+        type: string
+        default: "re-main"
       clang_variant:
         description: "Clang Toolchain"
         required: true
@@ -73,8 +78,10 @@ jobs:
           df -h /
 
       - name: Clone Kernel Source
+        env:
+          KERNEL_REF: ${{ inputs.kernel_ref || 're-main' }}
         run: |
-          git clone --depth=1 \
+          git clone --depth=1 -b "$KERNEL_REF" \
             https://${{ secrets.GH_TOKEN }}@github.com/erllanggod/rr66.git \
             kernel-source
 
