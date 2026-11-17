@@ -4,7 +4,7 @@ set -eo pipefail
 KERNEL_DIR="${GITHUB_WORKSPACE}/kernel-source"
 OUT_DIR="${KERNEL_DIR}/out"
 ZIMAGE_DIR="${OUT_DIR}/arch/arm64/boot"
-DEFCONFIG="raccoon_defconfig"
+DEFCONFIG="dumpc2j_defconfig"
 BUILD_START=$(date +%s)
 
 LTO="${INPUT_LTO:-default}"
