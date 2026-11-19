@@ -11,6 +11,8 @@ LTO="${INPUT_LTO:-default}"
 HZ="${INPUT_HZ:-default}"
 KERNEL_NAME="${INPUT_KERNEL_NAME:-}"
 DEBUG_MODE="${INPUT_DEBUG:-off}"
+DROIDSPACES="${INPUT_DROIDSPACES:-off}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BRAND="$(printf '%s' "${KERNEL_NAME#-}" | tr -c 'A-Za-z0-9._-' '-')"
 BRAND="${BRAND:-DumpC2J}"
@@ -61,9 +63,22 @@ case "$LTO" in
   none) $CFG -d LTO_CLANG -d LTO_CLANG_FULL -d LTO_CLANG_THIN -e LTO_NONE ;;
 esac
 
+case "$HZ" in
+  powersave) HZ=100 ;;
+  balance) HZ=250 ;;
+  smooth) HZ=300 ;;
+  performance) HZ=500 ;;
+  ultra-performance) HZ=1000 ;;
+esac
+
 if [ "$HZ" != "default" ]; then
   for h in 100 250 300 500 1000; do $CFG -d "HZ_$h"; done
   $CFG -e "HZ_$HZ" --set-val HZ "$HZ"
+  if [ "$HZ" = "100" ]; then $CFG -e RCU_LAZY; else $CFG -d RCU_LAZY; fi
+fi
+
+if [ "$DROIDSPACES" == "on" ]; then
+  bash "$SCRIPT_DIR/droidspaces.sh" apply "$KERNEL_DIR" "$OUT_DIR"
 fi
 
 if [ "$DEBUG_MODE" == "on" ]; then
@@ -72,6 +87,10 @@ if [ "$DEBUG_MODE" == "on" ]; then
 fi
 
 make "${MAKE_ARGS[@]}" olddefconfig
+
+if [ "$DROIDSPACES" == "on" ]; then
+  bash "$SCRIPT_DIR/droidspaces.sh" verify "$KERNEL_DIR" "$OUT_DIR"
+fi
 
 grep -E '^CONFIG_(LOCALVERSION|LTO_CLANG_[A-Z]+|HZ|DEBUG_INFO_BTF)=' "$OUT_DIR/.config" || true
 
@@ -94,7 +113,12 @@ cp -v "$ZIMAGE_DIR/$IMG" anykernel_temp/
 
 KVER=$(awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3} END{print v"."p"."s}' "$KERNEL_DIR/Makefile")
 TIME=$(date "+%Y%m%d-%H%M")
-ZIP_NAME="${BRAND}-Vanilla-${TIME}.zip"
+FEATURES=""
+[ "$DROIDSPACES" == "on" ] && FEATURES="Droidspaces"
+[ "$HZ" != "default" ] && FEATURES="${FEATURES:+$FEATURES, }${HZ}Hz"
+ZIP_SUFFIX=""
+[ "$DROIDSPACES" == "on" ] && ZIP_SUFFIX="-Droidspaces"
+ZIP_NAME="${BRAND}-Vanilla${ZIP_SUFFIX}-${TIME}.zip"
 (cd anykernel_temp && zip -r9 "${GITHUB_WORKSPACE}/${ZIP_NAME}" . -x '.git*' -x 'README.md' -x '*placeholder' >/dev/null)
 rm -rf anykernel_temp
 
@@ -106,6 +130,7 @@ DIFF=$(( $(date +%s) - BUILD_START ))
   echo "BRAND=$BRAND"
   echo "BUILD_DURATION_SEC=$DIFF"
   echo "BUILD_IMAGE=$IMG"
+  echo "FEATURES=$FEATURES"
 } >> "$GITHUB_ENV"
 
 echo "[+] Build done in $((DIFF / 60))m $((DIFF % 60))s: $ZIP_NAME"

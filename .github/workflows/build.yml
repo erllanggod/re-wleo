@@ -41,12 +41,17 @@ on:
         type: choice
         options:
           - default
-          - 100
-          - 250
-          - 300
-          - 500
-          - 1000
+          - powersave
+          - balance
+          - smooth
+          - performance
+          - ultra-performance
         default: default
+      droidspaces:
+        description: "Enable Droidspaces (container) support"
+        required: false
+        type: boolean
+        default: false
       debug:
         description: "Debug Mode (nokaslr)"
         required: true
@@ -134,6 +139,7 @@ jobs:
         env:
           INPUT_LTO: ${{ inputs.lto }}
           INPUT_HZ: ${{ inputs.hz }}
+          INPUT_DROIDSPACES: ${{ inputs.droidspaces && 'on' || 'off' }}
           INPUT_KERNEL_NAME: ${{ inputs.kernel_name }}
           INPUT_DEBUG: ${{ inputs.debug && 'on' || 'off' }}
         run: bash builder/scripts/build.sh

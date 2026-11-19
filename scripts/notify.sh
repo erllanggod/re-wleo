@@ -41,7 +41,8 @@ DETAIL="📋 <b>Build Detail</b>
 
 <b>Build Info:</b>
 ⚙️ Clang: $(esc "${KBUILD_COMPILER_STRING}")
-🖼️ Image: ${BUILD_IMAGE}
+${FEATURES:+🧩 Features: $(esc "$FEATURES")
+}🖼️ Image: ${BUILD_IMAGE}
 💾 Size: ${FILE_SIZE}
 🔐 SHA256: <code>${SHA256_FULL}</code>
 ⏱️ Duration: ${DUR_TEXT}
