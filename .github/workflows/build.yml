@@ -52,6 +52,11 @@ on:
         required: false
         type: boolean
         default: false
+      nomount:
+        description: "Enable NoMount (path redirection)"
+        required: false
+        type: boolean
+        default: false
       debug:
         description: "Debug Mode (nokaslr)"
         required: true
@@ -140,6 +145,7 @@ jobs:
           INPUT_LTO: ${{ inputs.lto }}
           INPUT_HZ: ${{ inputs.hz }}
           INPUT_DROIDSPACES: ${{ inputs.droidspaces && 'on' || 'off' }}
+          INPUT_NOMOUNT: ${{ inputs.nomount && 'on' || 'off' }}
           INPUT_KERNEL_NAME: ${{ inputs.kernel_name }}
           INPUT_DEBUG: ${{ inputs.debug && 'on' || 'off' }}
         run: bash builder/scripts/build.sh

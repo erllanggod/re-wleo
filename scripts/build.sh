@@ -12,6 +12,7 @@ HZ="${INPUT_HZ:-default}"
 KERNEL_NAME="${INPUT_KERNEL_NAME:-}"
 DEBUG_MODE="${INPUT_DEBUG:-off}"
 DROIDSPACES="${INPUT_DROIDSPACES:-off}"
+NOMOUNT="${INPUT_NOMOUNT:-off}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BRAND="$(printf '%s' "${KERNEL_NAME#-}" | tr -c 'A-Za-z0-9._-' '-')"
@@ -81,6 +82,13 @@ if [ "$DROIDSPACES" == "on" ]; then
   bash "$SCRIPT_DIR/droidspaces.sh" apply "$KERNEL_DIR" "$OUT_DIR"
 fi
 
+# NoMount defaults to y in its Kconfig, so always set it explicitly
+if [ "$NOMOUNT" == "on" ]; then
+  bash "$SCRIPT_DIR/nomount.sh" apply "$KERNEL_DIR" "$OUT_DIR"
+else
+  "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" -d NOMOUNT
+fi
+
 if [ "$DEBUG_MODE" == "on" ]; then
   cur=$(grep '^CONFIG_CMDLINE=' "$OUT_DIR/.config" | sed 's/^CONFIG_CMDLINE="//; s/"$//')
   echo "$cur" | grep -q nokaslr || $CFG --set-str CMDLINE "${cur:+$cur }nokaslr"
@@ -90,6 +98,9 @@ make "${MAKE_ARGS[@]}" olddefconfig
 
 if [ "$DROIDSPACES" == "on" ]; then
   bash "$SCRIPT_DIR/droidspaces.sh" verify "$KERNEL_DIR" "$OUT_DIR"
+fi
+if [ "$NOMOUNT" == "on" ]; then
+  bash "$SCRIPT_DIR/nomount.sh" verify "$KERNEL_DIR" "$OUT_DIR"
 fi
 
 grep -E '^CONFIG_(LOCALVERSION|LTO_CLANG_[A-Z]+|HZ|DEBUG_INFO_BTF)=' "$OUT_DIR/.config" || true
@@ -115,9 +126,11 @@ KVER=$(awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3} END{pri
 TIME=$(date "+%Y%m%d-%H%M")
 FEATURES=""
 [ "$DROIDSPACES" == "on" ] && FEATURES="Droidspaces"
+[ "$NOMOUNT" == "on" ] && FEATURES="${FEATURES:+$FEATURES, }NoMount"
 [ "$HZ" != "default" ] && FEATURES="${FEATURES:+$FEATURES, }${HZ}Hz"
 ZIP_SUFFIX=""
 [ "$DROIDSPACES" == "on" ] && ZIP_SUFFIX="-Droidspaces"
+[ "$NOMOUNT" == "on" ] && ZIP_SUFFIX="${ZIP_SUFFIX}-NoMount"
 ZIP_NAME="${BRAND}-Vanilla${ZIP_SUFFIX}-${TIME}.zip"
 (cd anykernel_temp && zip -r9 "${GITHUB_WORKSPACE}/${ZIP_NAME}" . -x '.git*' -x 'README.md' -x '*placeholder' >/dev/null)
 rm -rf anykernel_temp
